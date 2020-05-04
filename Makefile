@@ -1,4 +1,6 @@
-DATA_REPO=https://github.com/emmadoughty/Daily_COVID-19.git
+#DATA_REPO=https://github.com/emmadoughty/Daily_COVID-19.git
+DATA_REPO=https://github.com/tomwhite/covid-19-uk-data.git
+DATA_DIR=covid-19-uk-data/
 
 # install python venv and install python libraries
 env:
@@ -9,7 +11,7 @@ install: env
 	git clone $(DATA_REPO)
 	
 update:
-	cd ./Daily_COVID-19 && git pull $(DATA_REPO) && cd ..
+	cd $(DATA_DIR) && git pull $(DATA_REPO) && cd ..
 	./env/bin/python bristol-covid19-bot.py
 
 
