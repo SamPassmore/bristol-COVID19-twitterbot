@@ -45,29 +45,30 @@ def main(code, api):
 	days_nocases = (date - date_nocases).days
 
 	# previous tweets
-	lastten_tweets = api.user_timeline(id = "@Bristol_C19", count = 10)
-	# print(lastten_tweets[0].text)
-	for tweet in lastten_tweets:
-		prev_dates = re.search('There are [0-9]{3,} COVID-19 cases in Bristol as of ([A-Z]{1}[a-z]{2} [0-9]{2} [A-Z]{1}[a-z]{2})', tweet.text)
+	for tweet in tweepy.Cursor(api.user_timeline).items(10):
+		prev_dates = re.search('([A-Z]{1}[a-z]{2} [0-9]{2} [A-Z]{1}[a-z]{2})', tweet.text)
+		print(prev_dates)
 		if(prev_dates is not None):			
+			print(prev_dates.group(1))
+			print(date_yf)
 			if(prev_dates.group(1) == date_lwf):
 				week_count = re.search('There are ([0-9]{3,})', tweet.text).group(1) 
 			if(prev_dates.group(1) == date_yf):
 				last_tweet = tweet.text
   
 	# previous day
-	yesterday_count = re.search('There are ([0-9]{3,})', last_tweet).group(1)
-	day_inc = total - int(yesterday_count)
-	
-
-
+	if(days_nocases <= 3):
+		# yesterday_count = re.search('total of ([0-9]{3,}) cases.', last_tweet).group(1)
+		yesterday_count = cases[-2]
+		day_inc = total - int(yesterday_count)
+		
 	week_inc = total - int(week_count)
 
 	if(days_nocases >= 3):
 		tweet = f"There have been {days_nocases} days since the last case of COVID-19 in Bristol. There has been {week_inc} cases in the previous week."
 	if(days_nocases < 3):
-		tweet = f"There are {total} COVID-19 cases in Bristol as of {date_f}. This is an increase of {day_inc} from {date_yf} and {week_inc} in the previous week."
-	# print(tweet)
+		tweet = f"There were {day_inc} cases of COVID-19 in Bristol on {date_f}, with {week_inc} cases in the last week. There have been a total of {total} cases."
+		# tweet = f"There have been {total} COVID-19 cases in Bristol as of {date_f}. This is an increase of {day_inc} from {date_yf} and {week_inc} in the previous week."
 	# send tweet
 	return([tweet, last_tweet])
 
