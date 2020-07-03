@@ -1,76 +1,55 @@
 import tweepy
-import pandas as pd
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from os import environ
-import re
+import requests
+import json
 
-#dotenv.load_dotenv('.env')
 load_dotenv('.env')
 
-def main(code, api):
-	d = pd.read_csv('covid-19-uk-data/data/covid-19-cases-uk.csv')
-	d = d[d.AreaCode==code]
-  
-	## assuming cases always go up (i.e. recoveries aren't removed) the highest number
- 	## will always be the most recent
-	#cases = d['confirm']
-	cases = d['TotalCases']
+def main(code):
+	data = json.loads(requests.get("https://c19downloads.azureedge.net/downloads/json/coronavirus-cases_latest.json").text)
+	with open('test-json.json') as f:
+  		data = json.load(f)
 
-	date = datetime.strptime(d['Date'].iloc[-1], "%Y-%m-%d")
-	date_f = date.strftime('%a %d %b')
+	data = data['utlas']
 
-	date_yesterday = date - timedelta(days=1)
-	date_yf = date_yesterday.strftime('%a %d %b')
+	place = [d for d in data if d['areaCode'] == code]
 
-	date_lastweek = date - timedelta(days=7)
-	date_lwf = date_lastweek.strftime('%a %d %b')
+	recent_date = (datetime.today() - timedelta(1)).strftime('%Y-%m-%d') # there is a one day delay on reporting
+	today = [p for p in place if p['specimenDate'] == recent_date][0]
 
-	TC = []
-	for c in cases:
-		if c == "1 to 4":
-		  TC.append(2)
+	old_result = place[7]
+
+	daily_cases = [p['dailyLabConfirmedCases'] for p in place]
+	
+	days_nocases = 0
+	for d in daily_cases:
+		if d == 0:
+			days_nocases += 1
 		else:
-		  TC.append(int(c))
+			break
 
-	cases = TC
-	d['TC'] = TC
+	print(days_nocases)
+	print(daily_cases)
 
-	# total cases
-	total = cases[-1]
+	## text variable
+	day_inc = today['dailyLabConfirmedCases']
+	total = today['totalLabConfirmedCases']
+	date_f = datetime.strptime(recent_date, '%Y-%m-%d').strftime("%d %b")
 
-	# days of no cases
-	nocases = d[d.TotalCases == total]
-	date_nocases = datetime.strptime(nocases['Date'].iloc[0], "%Y-%m-%d")
-	days_nocases = (date - date_nocases).days
+	long_inc = today['totalLabConfirmedCases'] - old_result['totalLabConfirmedCases']
+	old_date = datetime.strptime(old_result['specimenDate'], '%Y-%m-%d').strftime("%d %b")
 
-	# previous tweets
-	for tweet in tweepy.Cursor(api.user_timeline).items(10):
-		prev_dates = re.search('([A-Z]{1}[a-z]{2} [0-9]{2} [A-Z]{1}[a-z]{2})', tweet.text)
-		print(prev_dates)
-		if(prev_dates is not None):			
-			print(prev_dates.group(1))
-			print(date_yf)
-			if(prev_dates.group(1) == date_lwf):
-				week_count = re.search('There are ([0-9]{3,})', tweet.text).group(1) 
-			if(prev_dates.group(1) == date_yf):
-				last_tweet = tweet.text
-  
-	# previous day
-	if(days_nocases <= 3):
-		# yesterday_count = re.search('total of ([0-9]{3,}) cases.', last_tweet).group(1)
-		yesterday_count = cases[-2]
-		day_inc = total - int(yesterday_count)
-		
-	week_inc = total - int(week_count)
+	rate = today['dailyTotalLabConfirmedCasesRate']
 
 	if(days_nocases >= 3):
-		tweet = f"There have been {days_nocases} days since the last case of COVID-19 in Bristol. There has been {week_inc} cases in the previous week."
+		tweet = f"There have been {days_nocases} days since the last case of COVID-19 in Bristol. There have been {long_inc} cases since the {old_date}. There have been a total of {total} cases, at a rate of {rate} cases per 100k people."
 	if(days_nocases < 3):
-		tweet = f"There were {day_inc} cases of COVID-19 in Bristol on {date_f}, with {week_inc} cases in the last week. There have been a total of {total} cases."
+		tweet = f"There were {day_inc} cases of COVID-19 in Bristol on {date_f}, with {long_inc} cases since {old_date}. There have been a total of {total} cases, which is a rate of {rate} cases per 100k people."
 		# tweet = f"There have been {total} COVID-19 cases in Bristol as of {date_f}. This is an increase of {day_inc} from {date_yf} and {week_inc} in the previous week."
 	# send tweet
-	return([tweet, last_tweet])
+	return(tweet)
 
 
 
@@ -88,7 +67,7 @@ auth.set_access_token(three,four)
 api = tweepy.API(auth, wait_on_rate_limit=True,
     wait_on_rate_limit_notify=True)
 
-# check authentication
+# # check authentication
 try:
     api.verify_credentials()
     print("Authentication OK")
@@ -97,9 +76,10 @@ except:
 
 # Parameters
 bristol_code = "E06000023"
-output = main(bristol_code, api)
-new_tweet = output[0]
-last_tweet = output[1]
+output = main(bristol_code)
+new_tweet = output
+
+last_tweet = api.user_timeline(id = "@Bristol_C19", count = 1, tweet_mode='extended')[0]._json['full_text']
 
 if new_tweet != last_tweet:
 	print("#-- Old tweet --#")

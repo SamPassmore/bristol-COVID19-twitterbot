@@ -2,7 +2,9 @@
 
 This repo contains a twitter bot to summarise daily COVID-19 statistics in Bristol, UK.
 
-Data is drawn from: https://github.com/emmadoughty/Daily_COVID-19
+Data was drawn from: https://github.com/emmadoughty/Daily_COVID-19
+
+As of 03 July 2020 data is drawn from the government website: https://coronavirus.data.gov.uk/
 
 The code can easily be changed to summarise statistics from any UTLA in the UK by changing the Bristol code on line 50. 
 To set up your own bot, you will need a set up access to the twitter API here: https://developer.twitter.com/en
