@@ -9,45 +9,87 @@ load_dotenv('.env')
 
 def main(code):
 	data = json.loads(requests.get("https://c19downloads.azureedge.net/downloads/json/coronavirus-cases_latest.json").text)
-	with open('test-json.json') as f:
-  		data = json.load(f)
-
-	data = data['utlas']
-
-	place = [d for d in data if d['areaCode'] == code]
-
-	recent_date = (datetime.today() - timedelta(1)).strftime('%Y-%m-%d') # there is a one day delay on reporting
-	today = [p for p in place if p['specimenDate'] == recent_date][0]
-
-	old_result = place[7]
-
-	daily_cases = [p['dailyLabConfirmedCases'] for p in place]
+	# with open('test-json.json') as f:
+ #  		data = json.load(f)
 	
-	days_nocases = 0
-	for d in daily_cases:
-		if d == 0:
-			days_nocases += 1
-		else:
-			break
+	recent_update = datetime.strptime(data['metadata']['lastUpdatedAt'][0:10], '%Y-%m-%d').strftime('%Y-%m-%d')
 
-	print(days_nocases)
-	print(daily_cases)
+	# make sure the JSON update was today
+	if(datetime.today().strftime('%Y-%m-%d') == recent_update):
+		print("Data has been updated \n")
+		data = data['utlas']
 
-	## text variable
-	day_inc = today['dailyLabConfirmedCases']
-	total = today['totalLabConfirmedCases']
-	date_f = datetime.strptime(recent_date, '%Y-%m-%d').strftime("%d %b")
+		place = [d for d in data if d['areaCode'] == code]
 
-	long_inc = today['totalLabConfirmedCases'] - old_result['totalLabConfirmedCases']
-	old_date = datetime.strptime(old_result['specimenDate'], '%Y-%m-%d').strftime("%d %b")
 
-	rate = today['dailyTotalLabConfirmedCasesRate']
+		recent_date = (datetime.today() - timedelta(days = 1)).strftime('%Y-%m-%d') # there is a one day delay on reporting
 
-	if(days_nocases >= 3):
-		tweet = f"There have been {days_nocases} days since the last case of COVID-19 in Bristol. There have been {long_inc} cases since the {old_date}. There have been a total of {total} cases, at a rate of {rate} cases per 100k people."
-	if(days_nocases < 3):
-		tweet = f"There were {day_inc} cases of COVID-19 in Bristol on {date_f}, with {long_inc} cases since {old_date}. There have been a total of {total} cases, which is a rate of {rate} cases per 100k people."
-		# tweet = f"There have been {total} COVID-19 cases in Bristol as of {date_f}. This is an increase of {day_inc} from {date_yf} and {week_inc} in the previous week."
+		today = [p for p in place if p['specimenDate'] == recent_date]
+
+
+		one = place[1]
+		two = place[3]
+		three = place[5]
+
+		one_date 	= datetime.strptime(one['specimenDate'], '%Y-%m-%d').strftime("%d %b")
+		two_date 	= datetime.strptime(two['specimenDate'], '%Y-%m-%d').strftime("%d %b")
+		three_date 	= datetime.strptime(three['specimenDate'], '%Y-%m-%d').strftime("%d %b")
+
+		total 		= one['totalLabConfirmedCases'] 
+
+		one_count 	= one['dailyLabConfirmedCases']
+		two_count 	= total - two['totalLabConfirmedCases']
+		three_count = total - three['totalLabConfirmedCases']
+
+		
+
+		tweet = f"There was {one_count} COVID-19 cases in Bristol on {one_date}. There have been {two_count} cases since the {two_date}, and {three_count} since the {three_date}. There have been {total} cases in total."
+
+		# see if there is new Bristol data
+		# if(len(today) > 0):
+		# 	today = today[0]
+			
+		# 	old_result = place[7]
+
+		# 	daily_cases = [p['dailyLabConfirmedCases'] for p in place]
+			
+		# 	days_nocases = 0
+		# 	for d in daily_cases:
+		# 		if d == 0:
+		# 			days_nocases += 1
+		# 		else:
+		# 			break
+
+		# 	print(days_nocases)
+		# 	print(daily_cases)
+
+
+			
+			
+
+
+
+		# 	## text variable
+		# 	day_inc = today['dailyLabConfirmedCases']
+		# 	total = today['totalLabConfirmedCases']
+		# 	date_f = datetime.strptime(recent_date, '%Y-%m-%d').strftime("%d %b")
+
+		# 	long_inc = today['totalLabConfirmedCases'] - old_result['totalLabConfirmedCases']
+		# 	old_date = datetime.strptime(old_result['specimenDate'], '%Y-%m-%d').strftime("%d %b")
+
+		# 	rate = today['dailyTotalLabConfirmedCasesRate']
+
+
+
+			# if(days_nocases >= 3):
+			# 	tweet = f"There have been {days_nocases} days since the last case of COVID-19 in Bristol. There have been {long_inc} cases since the {old_date}. There have been a total of {total} cases, at a rate of {rate} cases per 100k people."
+			# if(days_nocases < 3):
+			# 	tweet = f"There were {day_inc} cases of COVID-19 in Bristol on {date_f}, with {long_inc} cases since {old_date}. There have been a total of {total} cases, which is a rate of {rate} cases per 100k people."
+				# tweet = f"There have been {total} COVID-19 cases in Bristol as of {date_f}. This is an increase of {day_inc} from {date_yf} and {week_inc} in the previous week."
+		# else:
+		# 	tweet = "No new data today."
+	else:
+		tweet = "No update yet."
 	# send tweet
 	return(tweet)
 
