@@ -4,46 +4,74 @@ from dotenv import load_dotenv
 from os import environ
 import requests
 import json
+from statistics import mean, stdev
 
 load_dotenv('.env')
 
 def main(code):
-	data = json.loads(requests.get("https://c19downloads.azureedge.net/downloads/json/coronavirus-cases_latest.json").text)
-	# with open('test-json.json') as f:
- #  		data = json.load(f)
+	with open('data.json') as f:
+		data = json.load(f)
 	
-	recent_update = datetime.strptime(data['metadata']['lastUpdatedAt'][0:10], '%Y-%m-%d').strftime('%Y-%m-%d')
+	print(data["data"][0]["cumCasesBySpecimenDateRate"])
+
+	data = data['data']
+
+	#recent_update = datetime.strptime(data['metadata']['lastUpdatedAt'][0:10], '%Y-%m-%d').strftime('%Y-%m-%d')
 
 	# make sure the JSON update was today
-	if(datetime.today().strftime('%Y-%m-%d') == recent_update):
-		print("Data has been updated \n")
-		data = data['utlas']
+	# if(datetime.today().strftime('%Y-%m-%d') == recent_update):
+		# print("Data has been updated \n")
+		# data = data['utlas']
 
-		place = [d for d in data if d['areaCode'] == code]
-
-
-		recent_date = (datetime.today() - timedelta(days = 1)).strftime('%Y-%m-%d') # there is a one day delay on reporting
-
-		today = [p for p in place if p['specimenDate'] == recent_date]
+		# place = [d for d in data if d['areaCode'] == code]
 
 
-		one = place[1]
-		two = place[3]
-		three = place[5]
+	# recent_date = (datetime.today() - timedelta(days = 1)).strftime('%Y-%m-%d') # there is a one day delay on reporting
 
-		one_date 	= datetime.strptime(one['specimenDate'], '%Y-%m-%d').strftime("%d %b")
-		two_date 	= datetime.strptime(two['specimenDate'], '%Y-%m-%d').strftime("%d %b")
-		three_date 	= datetime.strptime(three['specimenDate'], '%Y-%m-%d').strftime("%d %b")
+	# today = [p for p in place if p['specimenDate'] == recent_date]
+	today = data[0]
+	# print(today)
 
-		total 		= one['totalLabConfirmedCases'] 
 
-		one_count 	= one['dailyLabConfirmedCases']
-		two_count 	= total - two['totalLabConfirmedCases']
-		three_count = total - three['totalLabConfirmedCases']
+	# one = place[4]
+	# two = place[9]
+	# three = place[13]
+	one = data[4]
+	two = data[9]
+	three = data[13]
 
-		
+	# one_date 	= datetime.strptime(one['specimenDate'], '%Y-%m-%d').strftime("%d %b")
+	# two_date 	= datetime.strptime(two['specimenDate'], '%Y-%m-%d').strftime("%d %b")
+	# three_date 	= datetime.strptime(three['specimenDate'], '%Y-%m-%d').strftime("%d %b")
+	one_date 	= datetime.strptime(one['date'], '%Y-%m-%d').strftime("%d %b")
+	two_date 	= datetime.strptime(two['date'], '%Y-%m-%d').strftime("%d %b")
+	three_date 	= datetime.strptime(three['date'], '%Y-%m-%d').strftime("%d %b")
 
-		tweet = f"There was {one_count} COVID-19 cases in Bristol on {one_date}. There have been {two_count} cases since the {two_date}, and {three_count} since the {three_date}. There have been {total} cases in total."
+	# total 		= place[0]['totalLabConfirmedCases'] 
+	# one_count 	= total - one['totalLabConfirmedCases']
+	# two_count 	= total - two['totalLabConfirmedCases']
+	# three_count = total - three['totalLabConfirmedCases']
+
+	total 		= today['cumCasesBySpecimenDate'] 
+	one_count 	= total - one['cumCasesBySpecimenDate']
+	two_count 	= total - two['cumCasesBySpecimenDate']
+	three_count = total - three['cumCasesBySpecimenDate']
+
+
+	# print(total)
+	# print(one['cumCasesBySpecimenDate'])
+	# print(one[''])
+
+
+	seven_day = data[1:8]
+	print([s['cumCasesBySpecimenDate'] for s in seven_day])
+	seven_day_average = round(mean([s['newCasesBySpecimenDate'] for s in seven_day]), 2)
+	seven_day_sd = round(stdev([s['newCasesBySpecimenDate'] for s in seven_day]), 2)
+	
+	print("### Counts from the last seven days ###")
+	print([s['newCasesBySpecimenDate'] for s in seven_day])
+
+	tweet = f"There have been {one_count} COVID-19 cases in Bristol since the {one_date}. There have been {two_count} cases since the {two_date}, and {three_count} since the {three_date}. There have been {total} cases in total. In the last 7 days there has been an average of {seven_day_average} cases per day (± {seven_day_sd})."
 
 		# see if there is new Bristol data
 		# if(len(today) > 0):
@@ -88,8 +116,8 @@ def main(code):
 				# tweet = f"There have been {total} COVID-19 cases in Bristol as of {date_f}. This is an increase of {day_inc} from {date_yf} and {week_inc} in the previous week."
 		# else:
 		# 	tweet = "No new data today."
-	else:
-		tweet = "No update yet."
+	# else:
+	# 	tweet = "No update yet."
 	# send tweet
 	return(tweet)
 

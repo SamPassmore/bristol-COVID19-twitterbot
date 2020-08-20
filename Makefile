@@ -12,6 +12,7 @@ env:
 	
 update:
 # 	cd $(DATA_DIR) && git pull $(DATA_REPO) && cd ..
+	RScript get_dataR.R
 	./env/bin/python bristol-covid19-bot.py
 
 
